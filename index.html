@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear System Solver</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.6.0/math.min.js"></script>
+    <style>
+                body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Container styling */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Title styling */
+        h2 {
+            text-align: center;
+            color: #4CAF50;
+        }
+
+        /* Input field styling */
+        input[type="number"], button {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="number"]:focus {
+            border-color: #4CAF50;
+        }
+
+        /* Button styling */
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        /* Matrix and vector input styling */
+        .matrix-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .matrix-row input {
+            flex: 1;
+            margin-right: 5px;
+            text-align: center;
+        }
+
+        /* Solution display styling */
+        #solution {
+            background-color: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        /* Responsive design */
+        @media (max-width: 600px) {
+            .matrix-row input {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+
+            .matrix-row {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+        .matrix-row {
+        display: flex;
+        margin-bottom: 10px;
+        gap: 5px;
+    }
+
+    .matrix-row input {
+        flex: 1;
+        min-width: 50px; /* Minimum width to ensure readability */
+        text-align: center;
+        box-sizing: border-box;
+    }
+        footer {
+            text-align: center;
+            padding: 15px;
+            background-color: #4CAF50;
+            color: white;
+            border-top: 1px solid #ddd;
+            position: relative;
+            bottom: 0;
+            width: 100%;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Linear System Solver (AX = B)</h2>
+        <div>
+            <label for="size">Enter the size of the matrix (n x n): </label>
+            <input type="number" id="size" min="1">
+            <button onclick="generateMatrix()">Generate Matrix</button>
+        </div>
+        <br>
+        <div id="matrix-inputs"></div>
+        <br>
+        <button onclick="solveSystem()">Solve System</button>
+        <h3>Solution:</h3>
+        <div id="solution"></div>
+    </div>
+    <footer>
+        &copy; 2024 Levi Ackerman And Chameleon Foundation. All rights reserved.
+    </footer>
+    <script>
+        function generateMatrix() {
+            const size = parseInt(document.getElementById("size").value);
+            const matrixContainer = document.getElementById("matrix-inputs");
+            matrixContainer.innerHTML = "";
+
+            if (isNaN(size) || size < 1) {
+                alert("Please enter a valid size.");
+                return;
+            }
+
+            // Create inputs for matrix A
+            const matrixA = document.createElement("div");
+            matrixA.innerHTML = "<h4>Enter Matrix A (row by row):</h4>";
+            for (let i = 0; i < size; i++) {
+                const rowDiv = document.createElement("div");
+                rowDiv.className = "matrix-row";
+                for (let j = 0; j < size; j++) {
+                    const input = document.createElement("input");
+                    input.type = "number";
+                    input.className = "matrix-element";
+                    input.placeholder = `A[${i+1},${j+1}]`;
+                    rowDiv.appendChild(input);
+                }
+                matrixA.appendChild(rowDiv);
+            }
+            matrixContainer.appendChild(matrixA);
+
+            // Create inputs for vector B
+            const vectorB = document.createElement("div");
+            vectorB.innerHTML = "<h4>Enter Vector B:</h4>";
+            for (let i = 0; i < size; i++) {
+                const rowDiv = document.createElement("div");
+                rowDiv.className = "matrix-row";
+                const label = document.createElement("span");
+                label.className = "vector-label";
+                label.textContent = getVariableLabel(i);
+                rowDiv.appendChild(label);
+
+                const input = document.createElement("input");
+                input.type = "number";
+                input.className = "vector-element";
+                input.placeholder = `Value for ${label.textContent}`;
+                rowDiv.appendChild(input);
+
+                vectorB.appendChild(rowDiv);
+            }
+            matrixContainer.appendChild(vectorB);
+        }
+
+        function getVariableLabel(index) {
+            const labels = ["Variable 1", "Variable 2", "Variable 3", "Variable 4", "Variable 5", "Variable 6"];
+            return labels[index] || `Variable ${index + 1}`;
+        }
+
+        function solveSystem() {
+            const size = parseInt(document.getElementById("size").value);
+            const matrixAElements = document.getElementsByClassName("matrix-element");
+            const vectorBElements = document.getElementsByClassName("vector-element");
+            const solutionDiv = document.getElementById("solution");
+
+            if (isNaN(size) || size < 1) {
+                alert("Please enter a valid size.");
+                return;
+            }
+
+            // Read matrix A
+            const A = [];
+            for (let i = 0; i < size; i++) {
+                const row = [];
+                for (let j = 0; j < size; j++) {
+                    const value = parseFloat(matrixAElements[i * size + j].value);
+                    if (isNaN(value)) {
+                        alert("Please enter valid numbers for matrix A.");
+                        return;
+                    }
+                    row.push(value);
+                }
+                A.push(row);
+            }
+
+            // Read vector B
+            const B = [];
+            for (let i = 0; i < size; i++) {
+                const value = parseFloat(vectorBElements[i].value);
+                if (isNaN(value)) {
+                    alert("Please enter valid numbers for vector B.");
+                    return;
+                }
+                B.push(value);
+            }
+
+            // Solve AX = B
+            try {
+                const X = math.lusolve(A, B);
+                const labels = Array.from({ length: size }, (_, i) => getVariableLabel(i));
+                solutionDiv.innerHTML = labels.map((label, i) => `${label} = ${X[i][0].toFixed(2)}`).join(", ");
+            } catch (error) {
+                solutionDiv.innerHTML = "The system cannot be solved (e.g., matrix A is singular).";
+            }
+        }
+    </script>
+</body>
+</html>
